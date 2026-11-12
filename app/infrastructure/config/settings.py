@@ -88,6 +88,8 @@ class Settings:
     MATCHMAKING_RESULT_WINDOW_SECONDS: int = _env_int("MATCHMAKING_RESULT_WINDOW_SECONDS", 86400)
     # Huấn luyện lại mô hình xếp hạng từ kết quả kèo thật (0 = tắt job định kỳ).
     MATCHMAKING_TRAIN_INTERVAL_SECONDS: int = _env_int("MATCHMAKING_TRAIN_INTERVAL_SECONDS", 21600)
+    # Kèo ghép trận mô phỏng cho dev / demo (app/infrastructure/demo), cùng cờ với các service Java.
+    DEMO_SIMULATION_ENABLED: bool = _env_bool("DEMO_SIMULATION_ENABLED", False)
     # Phân tích kèo bằng LLM chạy nền; Ollama trên CPU cần 1–2 phút mỗi lần.
     MATCH_INSIGHT_ENABLED: bool = os.getenv("MATCH_INSIGHT_ENABLED", "true").lower() == "true"
     MATCH_INSIGHT_TIMEOUT_SECONDS: float = _env_float("MATCH_INSIGHT_TIMEOUT_SECONDS", 240.0)

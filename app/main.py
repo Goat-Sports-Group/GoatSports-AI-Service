@@ -10,11 +10,13 @@ from app.infrastructure.config.container import (
     knowledge_gap_service,
     matchmaking_model_service,
     rag_chatbot_service,
+    session_repository,
     shutdown_identity_verification,
     warm_up_identity_verification,
 )
 from app.infrastructure.config.database import database_clients
 from app.infrastructure.config.settings import settings
+from app.infrastructure.demo import matchmaking_simulation
 from app.infrastructure.messaging.activity_consumer import ActivityEventConsumer
 from app.presentation.controller import (
     admin_status,
@@ -44,6 +46,17 @@ async def _train_matchmaking_model_periodically(interval: int) -> None:
         except Exception:  # noqa: BLE001 - job nền không được làm sập service
             logger.warning("Matchmaking model training failed", exc_info=True)
         await asyncio.sleep(interval)
+
+
+async def _seed_demo_matchmaking_daily() -> None:
+    """Dữ liệu mô phỏng: kèo ghép trận có kết quả để mô hình xếp hạng học. Mỗi ngày chốt kèo vừa qua, thêm kèo mới."""
+    while True:
+        try:
+            count = await asyncio.to_thread(matchmaking_simulation.seed, session_repository)
+            logger.info("Demo matchmaking sessions upserted: %d", count)
+        except Exception:  # noqa: BLE001 - dữ liệu mô phỏng hỏng không được làm sập service
+            logger.warning("Demo matchmaking simulation failed", exc_info=True)
+        await asyncio.sleep(86400)
 
 
 def _sync_knowledge_base() -> None:
@@ -82,6 +95,7 @@ async def lifespan(_: FastAPI):
     database_clients.connect()
     trainer = None
     drafter = None
+    simulator = None
     activity_consumer = None
     user_deleted_consumer = None
     try:
@@ -106,6 +120,8 @@ async def lifespan(_: FastAPI):
                 name="user-deleted-consumer",
             )
             user_deleted_consumer.start()
+        if settings.DEMO_SIMULATION_ENABLED:
+            simulator = asyncio.create_task(_seed_demo_matchmaking_daily())
         if settings.MATCHMAKING_TRAIN_INTERVAL_SECONDS > 0:
             trainer = asyncio.create_task(
                 _train_matchmaking_model_periodically(settings.MATCHMAKING_TRAIN_INTERVAL_SECONDS)
@@ -114,6 +130,8 @@ async def lifespan(_: FastAPI):
     finally:
         if trainer:
             trainer.cancel()
+        if simulator:
+            simulator.cancel()
         if drafter:
             drafter.cancel()
         if activity_consumer:
