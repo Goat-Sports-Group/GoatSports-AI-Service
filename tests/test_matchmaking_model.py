@@ -161,3 +161,17 @@ class MatchInsightTests(unittest.TestCase):
         self.assertTrue(service.claim(other))
         service.explain(other.session_id)
         self.assertEqual(FAILED, other.ai_insight_status)
+
+
+class ModelStatusJsonTest(unittest.TestCase):
+    def test_weight_keys_are_camel_case_like_every_other_field(self):
+        from app.application.dto.response.models import MatchmakingModelStatus
+
+        status = MatchmakingModelStatus(
+            mode="RULES", samples=0, positives=0, min_samples=40, min_per_class=10,
+            weights={name: 10.0 for name in FEATURES},
+        )
+        body = status.model_dump(mode="json", by_alias=True)
+        self.assertEqual({"eloScore", "skillScore", "scheduleScore", "distanceScore", "playStyleScore",
+                          "positionScore", "experienceScore"}, set(body["weights"]))
+        self.assertEqual(40, body["minSamples"])

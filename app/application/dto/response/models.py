@@ -1,9 +1,9 @@
 from datetime import date, datetime, time
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, field_serializer
 
-from app.domain.base import DomainModel
+from app.domain.base import DomainModel, _to_camel
 from app.domain.entity.models import (
     AIModelVersion,
     IdentityVerification,
@@ -80,6 +80,11 @@ class MatchmakingModelStatus(DomainModel):
     min_samples: int
     min_per_class: int
     weights: dict[str, float]  # tỷ trọng (%) theo tiêu chí
+
+    @field_serializer("weights")
+    def _camel_weight_keys(self, weights: dict[str, float]) -> dict[str, float]:
+        """Khóa là tên tiêu chí (elo_score…); trả eloScore… như mọi trường JSON khác, client đọc theo khóa đó."""
+        return {_to_camel(name): value for name, value in weights.items()}
 
 
 class QueueJoinResponse(DomainModel):

@@ -51,7 +51,7 @@ def label(session: MatchmakingSession) -> int | None:
     return 0 if session.status in _FAILED else None
 
 
-def fit(x: np.ndarray, y: np.ndarray, l2: float = 0.05, epochs: int = 3000, lr: float = 0.5) -> tuple[np.ndarray, float]:
+def fit(x: np.ndarray, y: np.ndarray, l2: float = 0.01, epochs: int = 3000, lr: float = 0.5) -> tuple[np.ndarray, float]:
     """Logistic regression có chuẩn hóa L2, huấn luyện bằng gradient descent (dữ liệu nhỏ, không cần thư viện)."""
     weights = np.zeros(x.shape[1])
     bias = 0.0

@@ -88,7 +88,7 @@ def _breakdown(first: Player, second: Player, play_date: date, random: JavaRando
         "schedule": min(100.0, 30 + 25 * overlap) if overlap else 15 + random.next_int(25),
         "distance": max(0.0, 100 * (1 - distance / 15)),
         "play_style": 50 + random.next_int(46),
-        "position": 60 + random.next_int(36),
+        "position": 35 + random.next_int(61),
         "experience": max(0.0, 100 - 25 * abs(first.bookings_per_week - second.bookings_per_week)),
     }
     total = sum(scores[key] * weight for key, weight in SCORE_WEIGHTS.items())
@@ -122,12 +122,13 @@ def _reasons(scores: dict[str, float], distance: float, overlap: int) -> list[st
 def success_probability(breakdown: MatchScoreBreakdown) -> float:
     """"Sự thật ngầm" của mô phỏng: khung giờ và khoảng cách quyết định kèo có diễn ra hay không nhiều hơn ELO."""
     z = (
-        -5.4
+        -6.2
         + 3.2 * breakdown.schedule_score / 100
         + 2.6 * breakdown.distance_score / 100
         + 1.3 * breakdown.elo_score / 100
         + 0.7 * breakdown.skill_score / 100
-        + 0.4 * breakdown.play_style_score / 100
+        + 0.5 * breakdown.play_style_score / 100
+        + 1.0 * breakdown.position_score / 100
         + 0.3 * breakdown.experience_score / 100
     )
     return _sigmoid(z)
@@ -180,7 +181,7 @@ def build_sessions(now: datetime) -> list[MatchmakingSession]:
         random = mixed_random(0x3A7C, day.toordinal())
         progress = min(1.0, (day - first).days / HISTORY_DAYS)
         weekend = day.isoweekday() >= 6
-        count = max(1, round((2 + 4 * progress) * (1.4 if weekend else 1.0) + random.next_gaussian()))
+        count = max(3, round((7 + 9 * progress) * (1.4 if weekend else 1.0) + 2 * random.next_gaussian()))
         for index in range(count):
             session = _session(day, index, random, by_sport, today, now)
             if session is not None:
