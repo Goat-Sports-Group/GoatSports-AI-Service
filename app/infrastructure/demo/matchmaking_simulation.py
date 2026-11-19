@@ -44,6 +44,15 @@ _STYLES = ("BALANCED", "ATTACKING", "DEFENSIVE", "CONSISTENT")
 _COMMENTS_GOOD = ("Chơi đẹp, đúng giờ.", "Trình ngang nhau, rất vui.", "Sẽ hẹn kèo tiếp.", None)
 _COMMENTS_BAD = ("Tới trễ gần 30 phút.", "Trình chênh quá nhiều.", "Thái độ chưa tốt.")
 
+# Người của các cặp CLB demo ghép trận (club-service DemoSimulationSeeder.MATCHMAKING_TEAMS): từ ngày này họ không
+# có kèo mô phỏng, để lúc demo trang Ghép trận của họ trống và đồng đội không vướng kèo khác. Kèo trước đó giữ nguyên.
+DEMO_RESERVED_FROM = date(2026, 11, 19)
+DEMO_RESERVED = frozenset({
+    25, 261, 34, 204, 296, 289, 288, 182, 39, 175, 221, 183, 20, 37, 132, 51, 194, 17, 209, 92, 113, 222,
+    282, 237, 254, 156, 3, 13, 85, 143, 299, 6, 84, 190, 14, 108, 115, 33, 170, 219, 198, 98, 138, 273,
+    262, 159, 57, 255, 230, 235, 117, 290, 72, 242, 56, 270,
+})
+
 
 def _sigmoid(value: float) -> float:
     return 1.0 / (1.0 + math.exp(-value))
@@ -209,6 +218,10 @@ def _session(day, index, random, by_sport, today, now):
     ratings = (3 + random.next_int(3), 3 + random.next_int(3), 1 + random.next_int(2), 1 + random.next_int(2))
     if matched_at > now:
         return None
+    if day >= DEMO_RESERVED_FROM:
+        # Thay người sau khi đã rút hết số ngẫu nhiên: các kèo khác giữ nguyên, kèo cũ trong Mongo được ghi đè.
+        first = _stand_in(first, second, pool)
+        second = _stand_in(second, first, pool)
 
     profiles = [_profile(first, sport), _profile(second, sport)]
     session = MatchmakingSession(
@@ -276,6 +289,16 @@ def _session(day, index, random, by_sport, today, now):
         _feedback(second, first, rating_b, good, session.completed_at, ratings[1]),
     ]
     return session
+
+
+def _stand_in(player: Player, other: Player, pool: list[Player]) -> Player:
+    """Người kế tiếp cùng môn (ưu tiên cùng tỉnh) không thuộc ``DEMO_RESERVED`` thay cho người chơi demo."""
+    if player.index not in DEMO_RESERVED:
+        return player
+    at = pool.index(player)
+    ring = pool[at + 1:] + pool[:at]
+    free = [p for p in ring if p.index not in DEMO_RESERVED and p is not other]
+    return next((p for p in free if p.city == player.city), free[0])
 
 
 def _accept(profile: PlayerProfile, decision: AcceptanceDecision, at: datetime) -> MatchAcceptance:

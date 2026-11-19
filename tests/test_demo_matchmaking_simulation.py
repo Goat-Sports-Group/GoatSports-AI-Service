@@ -4,7 +4,8 @@ from datetime import datetime, timezone
 
 from app.application.service.matchmaking_model import MIN_AUC, MIN_SAMPLES, label, train
 from app.domain.enums import MatchSessionStatus
-from app.infrastructure.demo.matchmaking_simulation import build_sessions
+from app.infrastructure.demo.matchmaking_simulation import DEMO_RESERVED, DEMO_RESERVED_FROM, build_sessions
+from app.infrastructure.demo.population import players
 
 NOW = datetime(2026, 11, 12, 5, 0, tzinfo=timezone.utc)
 
@@ -19,6 +20,17 @@ def test_sessions_are_deterministic_and_never_matched_in_the_future():
     # Kèo sắp tới chưa có nhãn; kèo đã qua thì có.
     assert any(s.status == MatchSessionStatus.CONFIRMED for s in sessions)
     assert any(s.status == MatchSessionStatus.COMPLETED for s in sessions)
+
+
+def test_demo_matchmaking_players_have_no_simulated_matches_from_the_cutoff():
+    sessions = build_sessions(datetime(2026, 12, 31, 12, 0, tzinfo=timezone.utc))
+    reserved = {player.user_id for player in players() if player.index in DEMO_RESERVED}
+    later = [s for s in sessions if s.play_date >= DEMO_RESERVED_FROM]
+    assert later
+    assert all(p.participant_id not in reserved for s in later for p in s.participants)
+    assert all(s.participants[0].participant_id != s.participants[1].participant_id for s in later)
+    # Trước mốc vẫn còn lịch sử của họ.
+    assert any(p.participant_id in reserved for s in sessions if s.play_date < DEMO_RESERVED_FROM for p in s.participants)
 
 
 def test_model_learns_from_the_simulated_outcomes():
