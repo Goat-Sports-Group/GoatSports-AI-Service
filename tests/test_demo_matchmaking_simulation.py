@@ -4,7 +4,11 @@ from datetime import datetime, timezone
 
 from app.application.service.matchmaking_model import MIN_AUC, MIN_SAMPLES, label, train
 from app.domain.enums import MatchSessionStatus
-from app.infrastructure.demo.matchmaking_simulation import DEMO_RESERVED, DEMO_RESERVED_FROM, build_sessions
+from app.infrastructure.demo.matchmaking_simulation import (
+    DEMO_RESERVED,
+    DEMO_RESERVED_FROM,
+    build_sessions,
+)
 from app.infrastructure.demo.population import players
 
 NOW = datetime(2026, 11, 12, 5, 0, tzinfo=timezone.utc)
